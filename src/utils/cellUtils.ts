@@ -49,7 +49,9 @@ const parseCellRange = (range: string): string[] => {
 };
 
 // Spreadsheet Functions
-const spreadsheetFunctions = {
+const spreadsheetFunctions: {
+  [key: string]: (range: string, getData: (ref: string) => CellData | undefined, ...args: string[]) => number | string;
+} = {
   SUM: (range: string, getData: (ref: string) => CellData | undefined): number => {
     const cells = parseCellRange(range);
     return cells.reduce((sum, cell) => {
@@ -82,7 +84,6 @@ const spreadsheetFunctions = {
     }).length;
   },
 
-  // Data Quality Functions
   TRIM: (value: string): string => value.trim(),
   
   UPPER: (value: string): string => value.toUpperCase(),
@@ -116,8 +117,9 @@ const evaluateFormula = (formula: string, getCellValue: (ref: string) => string 
         return func(params[0], (ref) => ({ 
           content: String(getCellValue(ref)),
           format: {},
-          dataType: 'number'
-        }), params[2]);
+          dataType: 'number',
+          computedValue: String(getCellValue(ref))
+        }));
       } catch (error) {
         return '#ERROR!';
       }
