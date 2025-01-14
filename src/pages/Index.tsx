@@ -1,13 +1,19 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { DndContext } from "@dnd-kit/core";
+import { Toolbar } from "@/components/Toolbar";
+import { FormulaBar } from "@/components/FormulaBar";
+import { SheetTitle } from "@/components/SheetTitle";
+import { SpreadsheetGrid } from "@/components/SpreadsheetGrid";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <DndContext>
+      <div className="min-h-screen flex flex-col">
+        <SheetTitle />
+        <Toolbar />
+        <FormulaBar />
+        <SpreadsheetGrid />
       </div>
-    </div>
+    </DndContext>
   );
 };
 
