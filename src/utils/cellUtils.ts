@@ -22,7 +22,8 @@ export type CellData = {
 const getCellValue = (cellData: CellData | undefined): number | string => {
   if (!cellData) return 0;
   if (cellData.dataType === 'number') {
-    return Number(cellData.computedValue || cellData.content) || 0;
+    const value = Number(cellData.computedValue || cellData.content);
+    return isNaN(value) ? 0 : value;
   }
   return cellData.computedValue || cellData.content;
 };
@@ -63,17 +64,23 @@ const spreadsheetFunctions: {
   AVERAGE: (range: string, getData: (ref: string) => CellData | undefined): number => {
     const cells = parseCellRange(range);
     const sum = spreadsheetFunctions.SUM(range, getData);
-    return sum / cells.length;
+    return Number(sum) / cells.length;
   },
 
   MAX: (range: string, getData: (ref: string) => CellData | undefined): number => {
     const cells = parseCellRange(range);
-    return Math.max(...cells.map(cell => Number(getCellValue(getData(cell))) || -Infinity));
+    return Math.max(...cells.map(cell => {
+      const value = Number(getCellValue(getData(cell)));
+      return isNaN(value) ? -Infinity : value;
+    }));
   },
 
   MIN: (range: string, getData: (ref: string) => CellData | undefined): number => {
     const cells = parseCellRange(range);
-    return Math.min(...cells.map(cell => Number(getCellValue(getData(cell))) || Infinity));
+    return Math.min(...cells.map(cell => {
+      const value = Number(getCellValue(getData(cell)));
+      return isNaN(value) ? Infinity : value;
+    }));
   },
 
   COUNT: (range: string, getData: (ref: string) => CellData | undefined): number => {
@@ -84,11 +91,20 @@ const spreadsheetFunctions: {
     }).length;
   },
 
-  TRIM: (value: string): string => value.trim(),
+  TRIM: (range: string, getData: (ref: string) => CellData | undefined): string => {
+    const value = getCellValue(getData(range));
+    return String(value).trim();
+  },
   
-  UPPER: (value: string): string => value.toUpperCase(),
+  UPPER: (range: string, getData: (ref: string) => CellData | undefined): string => {
+    const value = getCellValue(getData(range));
+    return String(value).toUpperCase();
+  },
   
-  LOWER: (value: string): string => value.toLowerCase(),
+  LOWER: (range: string, getData: (ref: string) => CellData | undefined): string => {
+    const value = getCellValue(getData(range));
+    return String(value).toLowerCase();
+  },
   
   REMOVE_DUPLICATES: (range: string, getData: (ref: string) => CellData | undefined): string => {
     const cells = parseCellRange(range);
@@ -96,8 +112,9 @@ const spreadsheetFunctions: {
     return [...new Set(values)].join(', ');
   },
 
-  FIND_AND_REPLACE: (text: string, find: string, replace: string): string => {
-    return text.replace(new RegExp(find, 'g'), replace);
+  FIND_AND_REPLACE: (range: string, getData: (ref: string) => CellData | undefined, find: string, replace: string): string => {
+    const value = getCellValue(getData(range));
+    return String(value).replace(new RegExp(find || '', 'g'), replace || '');
   }
 };
 
@@ -119,7 +136,7 @@ const evaluateFormula = (formula: string, getCellValue: (ref: string) => string 
           format: {},
           dataType: 'number',
           computedValue: String(getCellValue(ref))
-        }));
+        }), ...params.slice(1));
       } catch (error) {
         return '#ERROR!';
       }
