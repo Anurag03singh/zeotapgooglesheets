@@ -1,7 +1,9 @@
 import { useDraggable } from "@dnd-kit/core";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CellData, updateDependentCells } from "@/utils/cellUtils";
 import { cn } from "@/lib/utils";
+import { historyManager } from "@/utils/historyManager";
+import { useToast } from "@/components/ui/use-toast";
 
 const COLUMNS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const ROWS = Array.from({ length: 50 }, (_, i) => i + 1);
@@ -12,9 +14,19 @@ interface CellProps {
   onDragStart: () => void;
   onDragEnd: (content: string) => void;
   format: CellData['format'];
+  isSelected: boolean;
+  onSelect: () => void;
 }
 
-const Cell = ({ content, onChange, onDragStart, onDragEnd, format }: CellProps) => {
+const Cell = ({ 
+  content, 
+  onChange, 
+  onDragStart, 
+  onDragEnd, 
+  format,
+  isSelected,
+  onSelect 
+}: CellProps) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `cell-${Math.random()}`,
     data: { content },
@@ -28,7 +40,8 @@ const Cell = ({ content, onChange, onDragStart, onDragEnd, format }: CellProps) 
       className={cn(
         "cell-content border-r border-b px-2 py-1",
         format?.bold && "font-bold",
-        format?.italic && "italic"
+        format?.italic && "italic",
+        isSelected && "bg-blue-100 outline outline-2 outline-blue-500",
       )}
       style={{
         fontSize: format?.fontSize ? `${format.fontSize}px` : undefined,
@@ -39,6 +52,7 @@ const Cell = ({ content, onChange, onDragStart, onDragEnd, format }: CellProps) 
       onBlur={(e) => onChange(e.currentTarget.textContent || "")}
       onDragStart={onDragStart}
       onDragEnd={() => onDragEnd(content.content)}
+      onClick={onSelect}
     >
       {content.computedValue || content.content}
     </div>
@@ -50,6 +64,9 @@ export const SpreadsheetGrid = () => {
   const [columnWidths, setColumnWidths] = useState<{ [key: string]: number }>(
     Object.fromEntries(COLUMNS.map(col => [col, 120]))
   );
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [clipboard, setClipboard] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleCellChange = useCallback((rowIndex: number, colIndex: number, value: string) => {
     const cellKey = `${COLUMNS[colIndex]}${rowIndex}`;
@@ -58,6 +75,13 @@ export const SpreadsheetGrid = () => {
       format: gridData[cellKey]?.format || {},
       computedValue: value.startsWith('=') ? undefined : value,
     };
+
+    historyManager.pushAction({
+      type: 'CELL_UPDATE',
+      cellKey,
+      previousValue: gridData[cellKey],
+      newValue: newCellData,
+    });
 
     setGridData(prev => {
       const newData = { ...prev, [cellKey]: newCellData };
@@ -82,6 +106,72 @@ export const SpreadsheetGrid = () => {
   const handleDragEnd = (content: string) => {
     // Handle drag end
   };
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!selectedCell) return;
+
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'c':
+          e.preventDefault();
+          const copiedData = gridData[selectedCell]?.content || '';
+          setClipboard(copiedData);
+          toast({
+            title: "Copied",
+            description: "Cell content copied to clipboard",
+          });
+          break;
+        case 'v':
+          e.preventDefault();
+          if (clipboard !== null) {
+            const [col, ...rowDigits] = selectedCell.split('');
+            const row = parseInt(rowDigits.join(''));
+            const colIndex = COLUMNS.indexOf(col);
+            handleCellChange(row, colIndex, clipboard);
+            toast({
+              title: "Pasted",
+              description: "Content pasted from clipboard",
+            });
+          }
+          break;
+        case 'z':
+          e.preventDefault();
+          const undoAction = historyManager.undo();
+          if (undoAction) {
+            setGridData(prev => ({
+              ...prev,
+              [undoAction.cellKey]: undoAction.previousValue || { content: '', format: {}, computedValue: '' }
+            }));
+            toast({
+              title: "Undo",
+              description: "Last action undone",
+            });
+          }
+          break;
+        case 'y':
+          e.preventDefault();
+          const redoAction = historyManager.redo();
+          if (redoAction) {
+            setGridData(prev => ({
+              ...prev,
+              [redoAction.cellKey]: redoAction.newValue || { content: '', format: {}, computedValue: '' }
+            }));
+            toast({
+              title: "Redo",
+              description: "Action redone",
+            });
+          }
+          break;
+      }
+    }
+  }, [selectedCell, clipboard, gridData, handleCellChange, toast]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   return (
     <div className="grid-container">
@@ -133,6 +223,8 @@ export const SpreadsheetGrid = () => {
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   format={gridData[cellKey]?.format || {}}
+                  isSelected={selectedCell === cellKey}
+                  onSelect={() => setSelectedCell(cellKey)}
                 />
               );
             })}
