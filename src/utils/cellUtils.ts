@@ -89,10 +89,10 @@ const spreadsheetFunctions = {
   
   LOWER: (value: string): string => value.toLowerCase(),
   
-  REMOVE_DUPLICATES: (range: string, getData: (ref: string) => CellData | undefined): string[] => {
+  REMOVE_DUPLICATES: (range: string, getData: (ref: string) => CellData | undefined): string => {
     const cells = parseCellRange(range);
     const values = cells.map(cell => getCellValue(getData(cell)));
-    return [...new Set(values)].map(String);
+    return [...new Set(values)].join(', ');
   },
 
   FIND_AND_REPLACE: (text: string, find: string, replace: string): string => {
@@ -117,7 +117,7 @@ const evaluateFormula = (formula: string, getCellValue: (ref: string) => string 
           content: String(getCellValue(ref)),
           format: {},
           dataType: 'number'
-        }));
+        }), params[2]);
       } catch (error) {
         return '#ERROR!';
       }
@@ -136,9 +136,9 @@ const evaluateFormula = (formula: string, getCellValue: (ref: string) => string 
   }
 };
 
-export const validateCellValue = (value: string): { isValid: boolean; dataType: string; error?: string } => {
+export const validateCellValue = (value: string): { isValid: boolean; dataType: 'number' | 'text' | 'date' | 'error' } => {
   if (value.startsWith('=')) {
-    return { isValid: true, dataType: 'formula' };
+    return { isValid: true, dataType: 'text' };
   }
 
   // Check if it's a number
