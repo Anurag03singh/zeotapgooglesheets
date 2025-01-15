@@ -5,25 +5,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 120 40% 98%;
     --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
+    --card: 120 40% 98%;
     --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
+    --popover: 120 40% 98%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262 83% 66%;
+    --primary: 142 71% 45%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 252 100% 94%;
+    --secondary: 120 50% 96%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    --muted: 120 50% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --accent: 120 50% 96%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 66%;
+    --border: 120 5% 90%;
+    --input: 120 5% 90%;
+    --ring: 142 71% 45%;
     --radius: 0.5rem;
   }
 }
@@ -54,13 +54,13 @@
   min-width: 120px;
   max-width: 120px;
   height: 32px;
-  background-color: #f8f9fa;
+  background-color: #F2FCE2;
 }
 
 .row-header {
   min-width: 50px;
   max-width: 50px;
-  background-color: #f8f9fa;
+  background-color: #F2FCE2;
 }
 
 .formula-bar {
