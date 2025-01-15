@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from "react";
 import { CellData, updateDependentCells } from "@/utils/cellUtils";
 import { cn } from "@/lib/utils";
 import { historyManager } from "@/utils/historyManager";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const COLUMNS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const ROWS = Array.from({ length: 50 }, (_, i) => i + 1);
@@ -38,7 +38,7 @@ const Cell = ({
       {...listeners}
       {...attributes}
       className={cn(
-        "cell-content border-r border-b px-2 py-1",
+        "cell-content border-r border-b px-2 py-1 min-h-[30px]",
         format?.bold && "font-bold",
         format?.italic && "italic",
         isSelected && "bg-blue-100 outline outline-2 outline-blue-500",
@@ -177,11 +177,11 @@ export const SpreadsheetGrid = () => {
     <div className="grid-container">
       <div className="inline-block">
         <div className="flex">
-          <div className="row-header border-r border-b" />
+          <div className="row-header w-10 border-r border-b bg-gray-50" />
           {COLUMNS.map((col, index) => (
             <div
               key={col}
-              className="header-cell border-r border-b text-center py-1 font-medium relative"
+              className="header-cell border-r border-b text-center py-1 font-medium bg-gray-50 relative"
               style={{ width: columnWidths[col] }}
             >
               {col}
@@ -210,7 +210,7 @@ export const SpreadsheetGrid = () => {
         </div>
         {ROWS.map((row) => (
           <div key={row} className="flex">
-            <div className="row-header border-r border-b text-center py-1 font-medium">
+            <div className="row-header w-10 border-r border-b text-center py-1 font-medium bg-gray-50">
               {row}
             </div>
             {COLUMNS.map((_, colIndex) => {
