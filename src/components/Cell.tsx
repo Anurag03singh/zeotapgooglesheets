@@ -1,3 +1,7 @@
+import { useDraggable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
+import { CellData } from "@/utils/cellUtils";
+
 interface CellProps {
   content: CellData;
   onChange: (value: string) => void;
