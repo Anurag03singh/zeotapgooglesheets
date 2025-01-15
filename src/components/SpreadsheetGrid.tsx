@@ -6,6 +6,7 @@ import { historyManager } from "@/utils/historyManager";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
 import { Save, Upload } from "lucide-react";
+import { SpreadsheetChart } from "./SpreadsheetChart";
 
 const COLUMNS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 const ROWS = Array.from({ length: 50 }, (_, i) => i + 1);
@@ -17,7 +18,7 @@ interface CellProps {
   onDragEnd: (content: string) => void;
   format: CellData['format'];
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (event: React.MouseEvent) => void;
 }
 
 const Cell = ({ 
@@ -67,6 +68,7 @@ export const SpreadsheetGrid = () => {
     Object.fromEntries(COLUMNS.map(col => [col, 120]))
   );
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [selectedRange, setSelectedRange] = useState<string[]>([]);
   const [clipboard, setClipboard] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -108,6 +110,31 @@ export const SpreadsheetGrid = () => {
   const handleDragEnd = (content: string) => {
     // Handle drag end
   };
+
+  const handleCellSelect = useCallback((cellKey: string, event: React.MouseEvent) => {
+    if (event.shiftKey && selectedCell) {
+      const [startCol, startRow] = [selectedCell.match(/[A-Z]+/)?.[0], parseInt(selectedCell.match(/\d+/)?.[0] || '0')];
+      const [endCol, endRow] = [cellKey.match(/[A-Z]+/)?.[0], parseInt(cellKey.match(/\d+/)?.[0] || '0')];
+      
+      if (startCol && endCol && startRow && endRow) {
+        const range: string[] = [];
+        const minCol = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0));
+        const maxCol = Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0));
+        const minRow = Math.min(startRow, endRow);
+        const maxRow = Math.max(startRow, endRow);
+        
+        for (let col = minCol; col <= maxCol; col++) {
+          for (let row = minRow; row <= maxRow; row++) {
+            range.push(`${String.fromCharCode(col)}${row}`);
+          }
+        }
+        setSelectedRange(range);
+      }
+    } else {
+      setSelectedCell(cellKey);
+      setSelectedRange([cellKey]);
+    }
+  }, [selectedCell]);
 
   const handleSaveSpreadsheet = () => {
     const spreadsheetData = {
@@ -251,62 +278,65 @@ export const SpreadsheetGrid = () => {
             Load Spreadsheet
           </Button>
         </div>
+        {selectedRange.length > 0 && (
+          <SpreadsheetChart data={gridData} selectedRange={selectedRange} />
+        )}
       </div>
       <div className="grid-container">
         <div className="inline-block">
           <div className="flex">
             <div className="row-header w-10 border-r border-b bg-gray-50" />
             {COLUMNS.map((col, index) => (
-            <div
-              key={col}
-              className="header-cell border-r border-b text-center py-1 font-medium bg-gray-50 relative"
-              style={{ width: columnWidths[col] }}
-            >
-              {col}
               <div
-                className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary"
-                onMouseDown={(e) => {
-                  const startX = e.clientX;
-                  const startWidth = columnWidths[col];
-                  
-                  const handleMouseMove = (moveEvent: MouseEvent) => {
-                    const delta = moveEvent.clientX - startX;
-                    handleColumnResize(index, startWidth + delta);
-                  };
-                  
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-                  
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }}
-              />
-            </div>
+                key={col}
+                className="header-cell border-r border-b text-center py-1 font-medium bg-gray-50 relative"
+                style={{ width: columnWidths[col] }}
+              >
+                {col}
+                <div
+                  className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary"
+                  onMouseDown={(e) => {
+                    const startX = e.clientX;
+                    const startWidth = columnWidths[col];
+                    
+                    const handleMouseMove = (moveEvent: MouseEvent) => {
+                      const delta = moveEvent.clientX - startX;
+                      handleColumnResize(index, startWidth + delta);
+                    };
+                    
+                    const handleMouseUp = () => {
+                      document.removeEventListener('mousemove', handleMouseMove);
+                      document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                  }}
+                />
+              </div>
             ))}
           </div>
           {ROWS.map((row) => (
-          <div key={row} className="flex">
-            <div className="row-header w-10 border-r border-b text-center py-1 font-medium bg-gray-50">
-              {row}
+            <div key={row} className="flex">
+              <div className="row-header w-10 border-r border-b text-center py-1 font-medium bg-gray-50">
+                {row}
+              </div>
+              {COLUMNS.map((_, colIndex) => {
+                const cellKey = `${COLUMNS[colIndex]}${row}`;
+                return (
+                  <Cell
+                    key={colIndex}
+                    content={gridData[cellKey] || { content: "", format: {}, computedValue: "" }}
+                    onChange={(value) => handleCellChange(row, colIndex, value)}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    format={gridData[cellKey]?.format || {}}
+                    isSelected={selectedRange.includes(cellKey)}
+                    onSelect={(e) => handleCellSelect(cellKey, e)}
+                  />
+                );
+              })}
             </div>
-            {COLUMNS.map((_, colIndex) => {
-              const cellKey = `${COLUMNS[colIndex]}${row}`;
-              return (
-                <Cell
-                  key={colIndex}
-                  content={gridData[cellKey] || { content: "", format: {}, computedValue: "" }}
-                  onChange={(value) => handleCellChange(row, colIndex, value)}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  format={gridData[cellKey]?.format || {}}
-                  isSelected={selectedCell === cellKey}
-                  onSelect={() => setSelectedCell(cellKey)}
-                />
-              );
-            })}
-          </div>
           ))}
         </div>
       </div>
